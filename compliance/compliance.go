@@ -40,7 +40,6 @@ type ImageCompliance struct {
 	Quality  map[string]ComplianceDetails `json:"quality"`
 	Format   map[string]ComplianceDetails `json:"format"`
 }
-
 type Compliance interface {
 	Formats() []string
 	Qualities() []string
@@ -50,5 +49,5 @@ type Compliance interface {
 	IsValidImageRotation(string) (bool, error)
 	IsValidImageQuality(string) (bool, error)
 	IsValidImageFormat(string) (bool, error)
-	Spec() *Level2ComplianceSpec
+	Spec() *Level2ComplianceSpec	// PLEASE MAKE ME AN INTERFACE, YEAH... (20190122/thisisaaronland)
 }
