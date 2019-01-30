@@ -10,4 +10,4 @@ bin/
 *.json
 .gitmodules
 vips-*
-docker
+credentials*

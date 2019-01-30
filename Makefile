@@ -15,6 +15,7 @@ self:   prep rmdeps
 	cp -r http src/github.com/thisisaaronland/go-iiif/
 	cp -r image src/github.com/thisisaaronland/go-iiif/
 	cp -r level src/github.com/thisisaaronland/go-iiif/
+	cp -r process src/github.com/thisisaaronland/go-iiif/
 	cp -r profile src/github.com/thisisaaronland/go-iiif/
 	cp -r service src/github.com/thisisaaronland/go-iiif/
 	cp -r source src/github.com/thisisaaronland/go-iiif/
@@ -37,10 +38,11 @@ deps:	rmdeps
 	@GOPATH=$(GOPATH) go get -u "gopkg.in/h2non/bimg.v1"
 	@GOPATH=$(GOPATH) go get -u "github.com/koyachi/go-atkinson"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-sanitize"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-aws"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-cli"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-csv"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-log"
 	@GOPATH=$(GOPATH) go get -u "github.com/jtacoma/uritemplates"
-	@GOPATH=$(GOPATH) go get -u "github.com/aws/aws-sdk-go"
 	@GOPATH=$(GOPATH) go get -u "github.com/aaronland/go-colours"
 
 vendor-deps: rmdeps deps
@@ -60,6 +62,7 @@ fmt:
 	go fmt http/*.go
 	go fmt image/*.go
 	go fmt level/*.go
+	go fmt process/*.go
 	go fmt profile/*.go
 	go fmt service/*.go
 	go fmt source/*.go
@@ -69,10 +72,15 @@ bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/iiif-server cmd/iiif-server.go
 	@GOPATH=$(GOPATH) go build -o bin/iiif-tile-seed cmd/iiif-tile-seed.go
 	@GOPATH=$(GOPATH) go build -o bin/iiif-transform cmd/iiif-transform.go
+	@GOPATH=$(GOPATH) go build -o bin/iiif-process cmd/iiif-process.go
 	@GOPATH=$(GOPATH) go build -o bin/iiif-dump-config cmd/iiif-dump-config.go
 
 docker-build:
-	docker build -t go-iiif .
+	@make docker-process-build
+	@make docker-server-build
 
-docker-run:
-	docker run -it -p 6161:8080 -e IIIF_SERVER_CONFIG=/etc/iiif-server/config.json -v $(CWD)/docker/etc:/etc/iiif-server -v $(CWD)/docker/images:/usr/local/iiif-server go-iiif
+docker-cli-build:
+	docker build -f Dockerfile.process -t go-iiif-process .
+
+docker-server-build:
+	docker build -f Dockerfile.server -t go-iiif-server .

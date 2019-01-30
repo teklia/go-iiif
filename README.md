@@ -28,6 +28,109 @@ $> make bin
 
 ## Tools
 
+### iiif-process
+
+```
+> ./bin/iiif-process -h
+Usage of ./bin/iiif-process:
+  -config string
+    	Path to a valid go-iiif config file.
+  -instructions string
+    	Path to a valid go-iiif processing instructions file.
+  -report
+    	Store a process report (JSON) for each URI in the cache tree.
+  -report-name string
+    	The filename for process reports. Default is 'process.json' as in '${URI}/process.json'. (default "process.json")
+  -uri value
+    	One or more valid IIIF URIs.
+```
+
+Perform a series of IIIF image processing tasks, defined in a JSON-based "instructions" file, on one or more (IIIF) URIs. For example:
+
+```
+$> ./bin/iiif-process -config config.json -instructions instructions.json -uri source/IMG_0084.JPG | jq
+
+{
+  "source/IMG_0084.JPG": {
+    "dimensions": {
+      "b": [
+        2048,
+        1536
+      ],
+      "d": [
+        320,
+        320
+      ],
+      "o": [
+        4032,
+        3024
+      ]
+    },
+    "palette": [
+      {
+        "name": "#b87531",
+        "hex": "#b87531",
+        "reference": "vibrant"
+      },
+      {
+        "name": "#805830",
+        "hex": "#805830",
+        "reference": "vibrant"
+      },
+      {
+        "name": "#7a7a82",
+        "hex": "#7a7a82",
+        "reference": "vibrant"
+      },
+      {
+        "name": "#c7c3b3",
+        "hex": "#c7c3b3",
+        "reference": "vibrant"
+      },
+      {
+        "name": "#5c493a",
+        "hex": "#5c493a",
+        "reference": "vibrant"
+      }
+    ],
+    "uris": {
+      "b": "source/IMG_0084.JPG/full/!2048,1536/0/color.jpg",
+      "d": "source/IMG_0084.JPG/-1,-1,320,320/full/0/dither.jpg",
+      "o": "source/IMG_0084.JPG/full/full/-1/color.jpg"
+    }
+  }
+}
+```
+
+Images are read-from and stored-to whatever source or derivatives caches defined in your `config.json` file.
+
+#### "instructions" files
+
+An instruction file is a JSON-encoded dictionary. Keys are user-defined and values are dictionary of IIIF one or more transformation instructions. For example:
+
+```
+{
+    "o": {"size": "full", "format": "", "rotation": "-1" },
+    "b": {"size": "!2048,1536", "format": "jpg" },
+    "d": {"size": "full", "quality": "dither", "region": "-1,-1,320,320", "format": "jpg" }	
+}
+
+```
+
+The complete list of possible instructions is:
+
+```
+type IIIFInstructions struct {
+	Region   string `json:"region"`
+	Size     string `json:"size"`
+	Rotation string `json:"rotation"`
+	Quality  string `json:"quality"`
+	Format   string `json:"format"`
+}
+```
+
+As of this writing there is no explicit response type for image beyond `map[string]interface{}`. There probably could be but it's still early days.
+
 ### iiif-server
 
 ```
@@ -494,9 +597,11 @@ Fetch source images from Amazon's S3 service. S3 caches assume that that the `pa
 * **region** is the name of the AWS region where your S3 bucket lives. Sorry [this is an AWS-ism](https://docs.aws.amazon.com/sdk-for-go/v1/developerguide/configuring-sdk.html)
 * **credentials** is a string describing [how your AWS credentials are defined](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html). Valid options are:
  * `env:` - Signals that you you have defined valid AWS credentials as environment variables
- * `shared:PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile
+ * `shared:PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile - _this syntax is deprecated and you should just use use `PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` instead._
  * `iam:` - Signals that you are using `go-iiif` in an AWS environment with suitable roles and permissioning for working with S3. The details of how and where you configure IAM roles are outside the scope of this document.
-
+ * `PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile
+ * `SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in default location(s) for the current user and that `go-iiif` should use a specific profile
+ 
 For the sake of backwards compatibilty if the value of `credentials` is any other string then it will be assumed to be the name of the profile you wish to use for a valid [credential files](https://docs.aws.amazon.com/sdk-for-go/v1/developerguide/configuring-sdk.html) in the home directory of the current user. Likewise if the value of `credentials` is an _empty_ string (or absent) it will be assumed that valid AWS access credentials have been defined as environment variables.
 
 It is not possible to define your AWS credentials as properties in your `go-iiif` config file.
@@ -613,8 +718,10 @@ Cache images using Amazon's S3 service. S3 caches assume that that the `path` ke
 * **region** is the name of the AWS region where your S3 bucket lives. Sorry [this is an AWS-ism](https://docs.aws.amazon.com/sdk-for-go/v1/developerguide/configuring-sdk.html)
 * **credentials** is a string describing [how your AWS credentials are defined](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html). Valid options are:
  * `env:` - Signals that you you have defined valid AWS credentials as environment variables
- * `shared:PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile
+ * `shared:PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile - _this syntax is deprecated and you should just use use `PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` instead._
  * `iam:` - Signals that you are using `go-iiif` in an AWS environment with suitable roles and permissioning for working with S3. The details of how and where you configure IAM roles are outside the scope of this document.
+ * `PATH_TO_SHARED_CREDENTIALS_FILE:SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in a [shared credentials files](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html) and that `go-iiif` should use a specific profile
+ * `SHARED_CREDENTIALS_PROFILE` - Signals that your AWS credentials are in default location(s) for the current user and that `go-iiif` should use a specific profile
 
 For the sake of backwards compatibilty if the value of `credentials` is any other string then it will be assumed to be the name of the profile you wish to use for a valid [credential files](https://docs.aws.amazon.com/sdk-for-go/v1/developerguide/configuring-sdk.html) in the home directory of the current user. Likewise if the value of `credentials` is an _empty_ string (or absent) it will be assumed that valid AWS access credentials have been defined as environment variables.
 
@@ -959,26 +1066,40 @@ All of the notes so far have assumed that you are using `iiif-tile-seed`. If you
 
 ## Docker
 
-[Yes](Dockerfile), or more specifically yes there is a Dockerfile for running a
-copy of `iiif-server`. It would probably be useful to have a Dockerfile for
-tiling a folder ("volume") full of images but that hasn't happened yet.
+Yes. There are two Dockerfiles included with this distribution.
 
-### Building 
+* [Dockerfile.server](Dockerfile.server) will build a container that runs `iiif-server` on port `8080`.
+* [Dockerfile.process](Dockerfile.process) will build a container that can run the  `iiif-process` command-line tool.
 
-```
-docker build -t iiif-server .
-```
+It would probably be useful to have a Dockerfile for tiling a folder ("volume") full of images but that hasn't happened yet.
 
-### Running 
+_Note: There used to be a single Dockerfile bundled with this package for building the `iiif-server`. It is now called `Dockerfile.server`._
 
-This is just here as a "for example" and because I can never remember the syntax for this stuff - it
-assumes that you've created the /usr/local/go-iiif/docker/... directories (for mounting with the volumes
-above) locally and copied in the relevant config file and images; adjust to taste 
+### iiif-server
+
+To build the `iiif-server` container run:
 
 ```
-$> docker run -it -p 6161:8080 -e IIIF_SERVER_CONFIG=/etc/iiif-server/config.json -v /usr/local/go-iiif/docker/etc:/etc/iiif-server -v /usr/local/go-iiif/docker/images:/usr/local/iiif-server iiif-server
+docker build -f Dockerfile.server -t go-iiif-server .
+```
+
+To start the `iiif-server` container run:
+
+```
+$> docker run -it -p 6161:8080 \
+   -v /usr/local/go-iiif/docker/etc:/etc/iiif-server \
+   -v /usr/local/go-iiif/docker/images:/usr/local/iiif-server \
+   iiif-server \
+   /bin/iiif-server -host 0.0.0.0 -config /etc/iiif-server/config.json
+   
 2018/06/20 23:03:10 Listening for requests at 0.0.0.0:8080
+```
 
+See the way we are mapping `/etc/iiif-server` and `/usr/local/iiif-server` to local directories? By default the `iiif-server` Dockerfile does not bundle config files or images. Maybe some day, but that day is not today.
+
+Then, in another terminal:
+
+```
 $> curl localhost:6161/test.jpg/info.json
 {"@context":"http://iiif.io/api/image/2/context.json","@id":"http://localhost:6161/test.jpg","@type":"iiif:Image","protocol":"http://iiif.io/api/image","width":3897,"height":4096,"profile":["http://iiif.io/api/image/2/level2.json",{"formats":["gif","webp","jpg","png","tif"],"qualities":["default","color","dither"],"supports":["full","regionByPx","regionByPct","regionSquare","sizeByDistortedWh","sizeByWh","full","max","sizeByW","sizeByH","sizeByPct","sizeByConfinedWh","none","rotationBy90s","mirroring","noAutoRotate","baseUriRedirect","cors","jsonldMediaType"]}],"service":[{"@context":"x-urn:service:go-iiif#palette","profile":"x-urn:service:go-iiif#palette","label":"x-urn:service:go-iiif#palette","palette":[{"name":"#2f2013","hex":"#2f2013","reference":"vibrant"},{"name":"#9e8e65","hex":"#9e8e65","reference":"vibrant"},{"name":"#c6bca6","hex":"#c6bca6","reference":"vibrant"},{"name":"#5f4d32","hex":"#5f4d32","reference":"vibrant"}]}]}
 ```
@@ -987,44 +1108,40 @@ Let's say you're using S3 as an image source and reading (S3) credentials from e
 
 ```
 $> docker run -it -p 6161:8080 \
-       -e IIIF_SERVER_CONFIG=/etc/iiif-server/config-s3.json \
+       -v /usr/local/go-iiif/docker/etc:/etc/iiif-server -v /usr/local/go-iiif/docker/images:/usr/local/iiif-server \
        -e AWS_ACCESS_KEY_ID={AWS_KEY} -e AWS_SECRET_ACCESS_KEY={AWS_SECRET} \
-       -v /usr/local/go-iiif/docker/etc:/etc/iiif-server -v /usr/local/go-iiif/docker/images:/usr/local/iiif-server \
-       iiif-server
+       go-iiif-server \
+       /bin/iiif-server -host 0.0.0.0 -config /etc/iiif-server/config.json       
 ```
 
-It is also possible to tell `iiif-server` to read its config data from an
-environment variable which can be useful in a Docker scenario. Rather than
-specifying the path to a file in the `-e IIIF_SERVER_CONFIG=` environment
-variable you would pass a string whose syntax is:
+### iiif-process
+
+To build the `iiif-process` container run:
 
 ```
-env:{NAME_OF_ANOTHER_CONFIG_VARIABLE_TO_READ}
+docker build -f Dockerfile.process -t go-iiif-process .
 ```
 
-It's a little convoluted but it does work. For example:
+The process an image using the `iiif-process` Docker container you would run something like:
 
 ```
-$> setenv IIIF_CONFIG_JSON `cat /etc/iiif-server/config-s3.json`
-
-$> docker run -it -p 6161:8080 \
-       -e IIIF_SERVER_CONFIG=env:IIIF_CONFIG_JSON -e IIIF_CONFIG_JSON="${IIIF_CONFIG_JSON}" \
-       -e AWS_ACCESS_KEY_ID={AWS_KEY} -e AWS_SECRET_ACCESS_KEY={AWS_SECRET} \       
-       -v /usr/local/go-iiif/docker/etc:/etc/iiif-server -v /usr/local/go-iiif/docker/images:/usr/local/iiif-server \
-       iiif-server
-
+$> docker run \
+   -v /usr/local/go-iiif/docker/etc:/etc/go-iiif \
+   go-iiif-process
+   /bin/iiif-process -config=/etc/go-iiif/config.json -instructions=/etc/go-iiif/instructions.json
+   -uri=test.jpg
 ```
 
-Which is a good a segue in to talking about Amazon's Elastic Container Service
-as any. Like the config-as-environment-variable stuff (which pretty much exists
-entirely for ECS) it works but... it's weird.
+Again, see the way we're mapping `/etc/go-iiif` to a local folder, like we do in the `iiif-server` Docker example? The same rules apply here.
 
 ### Amazon ECS
 
-I still find ECS to be a world of [poorly-to-weirdly documented](https://aws.amazon.com/getting-started/tutorials/deploy-docker-containers/) strangeness. Remy Dewolf's
-[AWS Fargate: First hands-on experience and
-review](https://medium.com/@remy.dewolf/aws-fargate-first-hands-on-experience-and-review-1b52fca2148e)
-is a pretty good introduction.
+I still find ECS to be a world of [poorly-to-weirdly documented](https://aws.amazon.com/getting-started/tutorials/deploy-docker-containers/) strangeness .Remy Dewolf's
+[AWS Fargate: First hands-on experience and review](https://medium.com/@remy.dewolf/aws-fargate-first-hands-on-experience-and-review-1b52fca2148e) is a pretty good introduction.
+
+I have gotten IIIF-related things to work in ECS but it's always a bit nerve-wracking and I haven't completely internalized the steps in order to repeat them to someone else. What follows should be considered a "current best-attempt".
+
+#### iiif-server
 
 What follows are non-comprehensive notes for getting `iiif-server` to work under
 ECS. The bad news is that it's fiddly (and weird, did I mention that?) The good
@@ -1039,28 +1156,26 @@ derivatives. I have not tried any of this with [EBS volumes mounted as Docker
 volumes](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_data_volumes.html)
 so if you have I'd love to hear about it.
 
-#### Services
+##### Services
 
 You will need to ensure that the service has `Auto-assign public IP(s)`
-enabled. Without it all your instances will fail with [mysterious `...ECS
-"CannotPullContainerError"`
-errors](https://github.com/aws/amazon-ecs-agent/issues/1128).
+enabled.This is necessary in order to fetch the actual Docker container.
 
 The corollary to that is that unless you are _wanting_ to expose your instances
 of `iiif-server` to the public internet you will need to add a security group
 (to your ECS service) with suitable restrictions.
 
-#### Containers
+##### Task definitions
 
-##### Entrypoint
+##### Command 
 
-`/bin/entrypoint.sh`
+`/bin/iiif-server`
 
-##### Port mappings
+###### Port mappings
 
 `8080`
 
-##### Environment variables
+###### Environment variables
 
 | Variable | Value |
 | --- | --- |
@@ -1073,6 +1188,43 @@ As of this writing the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` variables
 are necessary because if you specify `credential="iam:"` for an S3 source (in
 your IIIF config file) the server fails to start up with a weird error I've
 never seen before. Computers...
+
+#### iiif-process
+
+I have had an easier time setting up a Docker-ized `iiif-process` container in ECS and running it as a simple ECS task.
+
+##### Services
+
+You will need to ensure that the service has `Auto-assign public IP(s)` enabled.This is necessary in order to fetch the actual Docker container.
+
+#### Task definitions
+
+Your "task definition" will need a suitable AWS IAM role with the following properties:
+
+* A trust definition with `ecs-tasks.amazonaws.com`
+
+And the following policies assigned to it:
+
+* `AmazonECSTaskExecutionRolePolicy`
+* A custom policy with the necessary permissions your task will need to read-from and write-to source and derivative caches (typically S3)
+
+The task should be run in `awsvpc` network mode and required the `FARGATE` capability.
+
+Unlike the `iiif-server` container as of this writing it is not possible to pass in the IIIF config file (or the instructions file) as an environment variable. I've never really loved that approach and want to reconsider it for all the `ifff-` tools.
+
+This means you have a container that can run `/bin/iiif-process` but where does it find any of it's configuration information? The short answer is you don't use the `Dockerfile.process` Dockerfile in this package. Or you create a local copy of it customizing it as necessary.
+
+Instead you should use the `Dockerfile.process.ecs` Dockerfile defined in the [go-iiif-aws](https://github.com/aaronland/go-iiif-aws) package.
+
+This package will create a custom `iiif-process` container copying a custom IIIF config and instructions file into `/etc/go-iiif/config.json` and `/etc/go-iiif/instructions.json` respectively. This is the container image that you would then upload as a task to your AWS ECS account.
+
+It will also build a `iiif-process-ecs` tool that can be:
+
+* Used to invoke your task directly from the command-line, passing in one or more URIs to process.
+* Bundled as an AWS Lambda function that can be run to invoke your task.
+* Used to invoke that Lambda function (to invoke your task) from the command-line.
+
+The Dockerfile in the `go-iiif-aws` package will build the `iiif-process` binary from _this package_ but otherwise manages all of the ECS, Lambda and other AWS-specific code in its own codebase.
 
 ## Notes
 
