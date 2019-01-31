@@ -3,14 +3,15 @@ package process
 import (
 	"errors"
 	"fmt"
-	iiifconfig "github.com/thisisaaronland/go-iiif/config"
-	iiifimage "github.com/thisisaaronland/go-iiif/image"
-	iiifservice "github.com/thisisaaronland/go-iiif/service"
+	iiifuri "github.com/go-iiif/go-iiif-uri"
+	iiifconfig "github.com/go-iiif/go-iiif/config"
+	iiifimage "github.com/go-iiif/go-iiif/image"
+	iiifservice "github.com/go-iiif/go-iiif/service"
 	"log"
 	"sync"
 )
 
-func ParallelProcessURIWithInstructionSet(cfg *iiifconfig.Config, pr Processor, instruction_set IIIFInstructionSet, u URI) (map[string]interface{}, error) {
+func ParallelProcessURIWithInstructionSet(cfg *iiifconfig.Config, pr Processor, instruction_set IIIFInstructionSet, u iiifuri.URI) (map[string]interface{}, error) {
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
@@ -61,7 +62,7 @@ func ParallelProcessURIWithInstructionSet(cfg *iiifconfig.Config, pr Processor, 
 
 		i = EnsureInstructions(i)
 
-		go func(u URI, label Label, i IIIFInstructions) {
+		go func(u iiifuri.URI, label Label, i IIIFInstructions) {
 
 			defer func() {
 				done_ch <- true

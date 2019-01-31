@@ -1,16 +1,12 @@
 package process
 
 import (
-	iiifimage "github.com/thisisaaronland/go-iiif/image"
+	iiifuri "github.com/go-iiif/go-iiif-uri"
+	iiifimage "github.com/go-iiif/go-iiif/image"
 )
-
-type URI interface {
-	URL() string
-	String() string
-}
 
 type Label string
 
 type Processor interface {
-	ProcessURIWithInstructions(URI, Label, IIIFInstructions) (URI, iiifimage.Image, error)
+	ProcessURIWithInstructions(iiifuri.URI, Label, IIIFInstructions) (iiifuri.URI, iiifimage.Image, error)
 }

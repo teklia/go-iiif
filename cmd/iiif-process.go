@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/thisisaaronland/go-iiif/cache"
-	"github.com/thisisaaronland/go-iiif/config"
-	"github.com/thisisaaronland/go-iiif/process"
+	"github.com/go-iiif/go-iiif-uri"
+	"github.com/go-iiif/go-iiif/cache"
+	"github.com/go-iiif/go-iiif/config"
+	"github.com/go-iiif/go-iiif/process"
 	"github.com/whosonfirst/go-whosonfirst-cli/flags"
 	"log"
 	"os"
@@ -24,6 +25,8 @@ func main() {
 
 	var report = flag.Bool("report", false, "Store a process report (JSON) for each URI in the cache tree.")
 	var report_name = flag.String("report-name", "process.json", "The filename for process reports. Default is 'process.json' as in '${URI}/process.json'.")
+
+	var uri_type = flag.String("uri-type", "string", "A valid (go-iiif-uri) URI type. Valid options are: string, idsecret")
 
 	var uris flags.MultiString
 	flag.Var(&uris, "uri", "One or more valid IIIF URIs.")
@@ -51,9 +54,9 @@ func main() {
 	results := make(map[string]interface{})
 	wg := new(sync.WaitGroup)
 
-	for _, uri := range uris {
+	for _, str_uri := range uris {
 
-		u, err := process.NewIIIFURI(uri)
+		u, err := uri.NewURIWithType(str_uri, *uri_type)
 
 		if err != nil {
 			log.Fatal(err)
@@ -67,7 +70,7 @@ func main() {
 
 		if *report {
 
-			key := filepath.Join(uri, *report_name)
+			key := filepath.Join(str_uri, *report_name)
 			wg.Add(1)
 
 			go func() {
@@ -81,7 +84,7 @@ func main() {
 			}()
 		}
 
-		results[uri] = rsp
+		results[str_uri] = rsp
 	}
 
 	wg.Wait()
